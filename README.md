@@ -13,9 +13,19 @@ and is not expected to depend on this package.
 ## Packages
 
 - `theme` — the shared `AdaptiveColor` palette (Blue/Green/Red/Amber/Muted/
-  Subtle) and base Lipgloss styles used across the suite's TUIs.
-- `keymap` — a small builder for the `?` help overlay, replacing each tool's
-  hand-rolled `key()/row()/section()` helpers with one implementation.
+  Subtle) and base Lipgloss styles used across the suite's TUIs, plus
+  `NewSpinner` for the MiniDot sync/AI-call spinner every tool already builds
+  the same way.
+- `keymap` — a small builder for the `?` help overlay (replacing each tool's
+  hand-rolled `key()/row()/section()` helpers), plus the standard single-key
+  bindings (`SearchKey "/"`, `HelpKey "?"`, `DeleteKey "d"`, `ConfirmKey "y"`,
+  `QuitKey "q"`, `BackKey "esc"`, `SyncKey "s"`) already followed by every
+  tool except habctl's `s` (AI-suggest, not sync — deliberate, habctl has no
+  external data source to sync from).
+- `config` — `Dir(tool)` / `DataDir(tool)` for the `~/.config/<tool>` and
+  `~/.local/share/<tool>` conventions most tools already follow (mailctl and
+  taskctl keep using `~/Library/Application Support/<tool>` for their SQLite
+  DB on purpose; this package doesn't override that).
 
 ## Adoption
 
@@ -45,7 +55,9 @@ help := keymap.New("taskctl", "tasks from the terminal").
 
 - [x] Shared theme (`theme` package)
 - [x] Shared help-overlay builder (`keymap` package)
-- [ ] Shared standard keymap constants (`/` search, `?` help, `d` delete+confirm, `q`/`esc` quit)
-- [ ] Shared spinner/sync `tea.Cmd` pattern
-- [ ] Config helpers (`~/.config/missionctl/`)
-- [ ] License-check helper (once monetization starts — see `MONETIZATION.md` in the root repo)
+- [x] Shared standard keymap constants (`/` search, `?` help, `d` delete+confirm, `q`/`esc` quit)
+- [x] Shared spinner constructor (`theme.NewSpinner`)
+- [x] Config/data dir helpers (`config.Dir` / `config.DataDir`)
+- [ ] License-check helper — deliberately not started: monetization (and
+  therefore the license model it would check against) hasn't been decided
+  yet, see `MONETIZATION.md` and `ROADMAP.md` in the root repo
