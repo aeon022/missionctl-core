@@ -10,13 +10,17 @@ func TestCenter_NeverTouchesBackgroundBorderRing(t *testing.T) {
 	// own border ring entirely, so a centered popup collided with a
 	// bordered background panel and produced visibly doubled-up
 	// "╭──╭──╮──╮" corners. inset must keep the popup strictly inside it.
+	const bgW = 30
+	contentRow := func(label string) string {
+		return "│ " + label + strings.Repeat(" ", bgW-4-len(label)) + " │"
+	}
 	bg := strings.Join([]string{
-		"╭────────────────────────────╮",
-		"│ content row 1               │",
-		"│ content row 2               │",
-		"│ content row 3               │",
-		"│ content row 4               │",
-		"╰────────────────────────────╯",
+		"╭" + strings.Repeat("─", bgW-2) + "╮",
+		contentRow("content row 1"),
+		contentRow("content row 2"),
+		contentRow("content row 3"),
+		contentRow("content row 4"),
+		"╰" + strings.Repeat("─", bgW-2) + "╯",
 	}, "\n")
 	popup := strings.Join([]string{
 		"╭──────╮",
@@ -24,7 +28,7 @@ func TestCenter_NeverTouchesBackgroundBorderRing(t *testing.T) {
 		"╰──────╯",
 	}, "\n")
 
-	out := Center(bg, popup, 31, 6, 1)
+	out := Center(bg, popup, bgW, 6, 1)
 	lines := strings.Split(out, "\n")
 
 	if lines[0] != "╭────────────────────────────╮" {
@@ -77,5 +81,44 @@ func TestCenter_PopupWiderThanSafeAreaClampsInsteadOfPanicking(t *testing.T) {
 	out := Center("short", "this popup line is way wider than the background", 5, 1, 1)
 	if out == "" {
 		t.Error("expected non-empty output even when popup exceeds background width")
+	}
+}
+
+func TestCenter_ShortBackgroundLineDoesNotShiftPopupColumn(t *testing.T) {
+	// Regression test: found while rolling this out to calctl. ansi.Cut on
+	// a background line SHORTER than the requested right bound just
+	// returns whatever's there — it doesn't pad. Without padding every
+	// line to width first, a short line (a blank separator, a brief status
+	// message like "No events yet") produces a narrower left-hand slice
+	// than the popup's other rows, so the popup's left border lands one or
+	// more columns further left on exactly that row than on every other
+	// row — a visible zigzag in what should be a straight vertical edge.
+	bg := strings.Join([]string{
+		strings.Repeat("=", 40), // full-width row
+		"short",                 // much shorter than width — the trigger
+		strings.Repeat("=", 40), // full-width row
+	}, "\n")
+	popup := strings.Join([]string{
+		"╭────╮",
+		"│ hi │",
+		"╰────╯",
+	}, "\n")
+
+	out := Center(bg, popup, 40, 3, 0)
+	lines := strings.Split(out, "\n")
+
+	col := -1
+	for i, l := range lines {
+		idx := strings.IndexAny(l, "╭│╰")
+		if idx < 0 {
+			t.Fatalf("line %d: expected a popup border character, found none in %q", i, l)
+		}
+		if col == -1 {
+			col = idx
+			continue
+		}
+		if idx != col {
+			t.Errorf("line %d: popup border at column %d, want %d (same as other rows) — short background line threw it out of alignment", i, idx, col)
+		}
 	}
 }

@@ -29,6 +29,16 @@ func Center(background, popup string, width, height, inset int) string {
 	for len(bgLines) < height {
 		bgLines = append(bgLines, strings.Repeat(" ", width))
 	}
+	// Pad every existing line out to width too — ansi.Cut on a line shorter
+	// than the requested right bound just returns what's there, so a short
+	// line (a blank separator, a short status message) would produce a
+	// narrower left-hand slice than xOff and throw the popup's left edge
+	// out of alignment on exactly that row.
+	for i, l := range bgLines {
+		if lw := lipgloss.Width(l); lw < width {
+			bgLines[i] = l + strings.Repeat(" ", width-lw)
+		}
+	}
 
 	popLines := strings.Split(popup, "\n")
 	popW := 0
