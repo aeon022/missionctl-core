@@ -4,11 +4,14 @@ Shared Bubble Tea / Lipgloss building blocks for the [missionctl](https://github
 
 ## Why this exists
 
-mailctl, calctl, taskctl, notectl, budgetctl and timectl had already converged
-on an identical color palette and near-identical help-overlay code by
-copy-paste. This module makes that convergence explicit and shared instead of
-accidental and duplicated. habctl keeps its own distinct palette on purpose
-and is not expected to depend on this package.
+mailctl, calctl, taskctl, notectl, budgetctl, timectl and diaryctl had already
+converged on an identical color palette and near-identical help-overlay code
+by copy-paste — including a bug (a divider color too dark to see on many dark
+terminal themes) that had to be fixed independently in all seven repos before
+this package was actually adopted. All seven now depend on `theme` for their
+shared palette, replacing the duplicated literals. habctl keeps its own
+distinct palette on purpose and is not expected to depend on this package;
+postctl has its own separate design language and is likewise out of scope.
 
 ## Packages
 
@@ -34,6 +37,10 @@ Migration is **incremental, not a big-bang rewrite**: a tool adopts
 adding the dependency and replacing its local color vars / help-overlay
 helpers with calls into this package. No tool is required to migrate on any
 particular timeline.
+
+Status: all seven target tools now depend on `theme` for the color palette.
+`keymap` (help-overlay builder) and `config` (dir helpers) are still
+per-tool-copied and not yet migrated — same incremental policy applies.
 
 ```go
 import (
