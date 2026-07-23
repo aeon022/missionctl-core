@@ -29,6 +29,15 @@ postctl has its own separate design language and is likewise out of scope.
   `~/.local/share/<tool>` conventions most tools already follow (mailctl and
   taskctl keep using `~/Library/Application Support/<tool>` for their SQLite
   DB on purpose; this package doesn't override that).
+- `overlay` — `Center(background, popup, width, height, inset)` composites a
+  popup on top of already-rendered content instead of a full view-state
+  switch replacing the whole screen (e.g. a transient `?` help panel that
+  keeps the list visible around it). Uses `ansi.Cut` for ANSI-safe column
+  slicing. Pass `inset > 0` when background is itself a fully bordered
+  panel, so the popup can't collide with the background's own border ring —
+  first use of this (habctl's help overlay) got that wrong initially and
+  produced visibly doubled-up "╭──╭──╮──╮" corners before the inset clamp
+  was added.
 
 ## Adoption
 
