@@ -20,6 +20,11 @@ var (
 
 	SelectedBg = lipgloss.AdaptiveColor{Light: "189", Dark: "17"}
 	SelectedFg = lipgloss.AdaptiveColor{Light: "16", Dark: "255"}
+
+	// HoverBg previews the row under the mouse cursor before a click
+	// commits it as the selection — deliberately a plain neutral gray,
+	// less saturated than SelectedBg, so hover reads as "not yet chosen."
+	HoverBg = lipgloss.AdaptiveColor{Light: "252", Dark: "236"}
 )
 
 var (
@@ -30,4 +35,13 @@ var (
 	Key    = lipgloss.NewStyle().Foreground(Amber)
 
 	Selected = lipgloss.NewStyle().Background(SelectedBg).Foreground(SelectedFg).Padding(0, 1)
+
+	// Hover must be applied by wrapping an already-styled composite string
+	// in one Render() call (like Selected/styleCursor do) — it needs a
+	// Background set to do that safely. A Background-less style (e.g.
+	// Underline-only) makes lipgloss fall back to rendering the string
+	// rune-by-rune, which corrupts any ANSI escape codes already embedded
+	// in the content (nested color styling gets printed as literal text).
+	// Found via a forced-ANSI render while wiring up hover in taskctl.
+	Hover = lipgloss.NewStyle().Background(HoverBg)
 )
