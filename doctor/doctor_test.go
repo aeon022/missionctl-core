@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -61,6 +62,44 @@ func TestCheckAppleApp(t *testing.T) {
 	}
 	if c := CheckAppleApp("Fake", "ThisAppDoesNotExist12345"); c.OK {
 		t.Fatal("expected a nonexistent app name to fail, not report reachable")
+	}
+}
+
+func TestCheckDataDir(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "test.db")
+	if err := os.WriteFile(dbPath, []byte("data"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	c := CheckDataDir("Data directory", dbPath, false)
+	if !c.OK {
+		t.Fatalf("expected local mode to pass, got %+v", c)
+	}
+	if !strings.Contains(c.Detail, "(local)") {
+		t.Errorf("expected detail to mention local mode, got %q", c.Detail)
+	}
+
+	c = CheckDataDir("Data directory", dbPath, true)
+	if !c.OK || !strings.Contains(c.Detail, "(shared)") {
+		t.Errorf("expected shared mode to pass and mention shared, got %+v", c)
+	}
+}
+
+func TestCheckDataDirICloudPlaceholder(t *testing.T) {
+	dir := t.TempDir()
+	dbPath := filepath.Join(dir, "test.db")
+	placeholder := filepath.Join(dir, ".test.db.icloud")
+	if err := os.WriteFile(placeholder, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	c := CheckDataDir("Data directory", dbPath, true)
+	if c.OK {
+		t.Fatal("expected an undownloaded iCloud placeholder to fail")
+	}
+	if !strings.Contains(c.Detail, "iCloud") {
+		t.Errorf("expected detail to explain the iCloud placeholder, got %q", c.Detail)
 	}
 }
 

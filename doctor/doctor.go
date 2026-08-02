@@ -11,11 +11,13 @@ package doctor
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"time"
 
+	"github.com/aeon022/missionctl-core/syncdir"
 	_ "modernc.org/sqlite"
 )
 
@@ -56,6 +58,38 @@ func CheckSQLite(label, dbPath, table string) Check {
 		return Check{Label: label, OK: false, Detail: fmt.Sprintf("%s: table %q: %v", dbPath, table, err)}
 	}
 	return Check{Label: label, OK: true, Detail: fmt.Sprintf("%s (%d rows in %s)", dbPath, count, table)}
+}
+
+// CheckDataDir reports on a tool's data directory: whether it's running in
+// local (private default) or shared (user-configured, possibly folder-
+// synced) mode and the resolved path; a specific, actionable failure if
+// dbPath is currently an undownloaded iCloud Drive placeholder rather than
+// a generic "file not found"; and, if the lock is currently held by
+// another process, a note naming that — surfaced as informational context
+// rather than a failure, since "another instance has it open right now"
+// isn't itself a problem, just something worth knowing about.
+func CheckDataDir(label, dbPath string, shared bool) Check {
+	if isPlaceholder, placeholderPath := syncdir.ICloudPlaceholder(dbPath); isPlaceholder {
+		return Check{Label: label, OK: false, Detail: fmt.Sprintf(
+			"%s hasn't finished downloading from iCloud yet (found %s) — open Finder and download it, or disable \"Optimize Mac Storage\" for this folder",
+			dbPath, placeholderPath)}
+	}
+
+	mode := "local"
+	if shared {
+		mode = "shared"
+	}
+	detail := fmt.Sprintf("%s (%s)", dbPath, mode)
+
+	if lock, err := syncdir.Acquire(dbPath); err != nil {
+		if errors.Is(err, syncdir.ErrLocked) {
+			detail += " — currently open in another process"
+		}
+	} else {
+		lock.Release()
+	}
+
+	return Check{Label: label, OK: true, Detail: detail}
 }
 
 // CheckAppleApp confirms a macOS app is actually installed, via AppleScript's

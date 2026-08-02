@@ -28,7 +28,22 @@ postctl has its own separate design language and is likewise out of scope.
 - `config` — `Dir(tool)` / `DataDir(tool)` for the `~/.config/<tool>` and
   `~/.local/share/<tool>` conventions most tools already follow (mailctl and
   taskctl keep using `~/Library/Application Support/<tool>` for their SQLite
-  DB on purpose; this package doesn't override that).
+  DB on purpose; this package doesn't override that). `ResolveDir(tool,
+  override)` returns `override` (expanded and created) if the user
+  configured one, else falls back to `DataDir(tool)` — the entry point for
+  pointing a tool's data at a folder of the user's own choosing, see
+  `syncdir` below.
+- `syncdir` — makes it safe to point a tool's SQLite database at a
+  user-owned synced folder (iCloud Drive, Dropbox, Syncthing, ...) instead
+  of its private default directory: `JournalMode(shared)` switches WAL to
+  rollback-journal the moment a directory is user-configured, since WAL's
+  multi-file on-disk state (`.db`/`.db-wal`/`.db-shm`) has no cross-file
+  sync-atomicity guarantee from a folder-sync client; `Acquire`/`Release`
+  is a same-machine advisory flock so two processes never write at once;
+  `ICloudPlaceholder` detects an "Optimize Mac Storage" stub so a tool can
+  report a clear message instead of a bare missing file. Same-machine only
+  — it does not and cannot solve true simultaneous cross-machine writes;
+  no folder-sync client offers a cross-machine lock to build on.
 - `overlay` — `Center(background, popup, width, height, inset)` composites a
   popup on top of already-rendered content instead of a full view-state
   switch replacing the whole screen (e.g. a transient `?` help panel that
@@ -74,6 +89,7 @@ help := keymap.New("taskctl", "tasks from the terminal").
 - [x] Shared standard keymap constants (`/` search, `?` help, `d` delete+confirm, `q`/`esc` quit)
 - [x] Shared spinner constructor (`theme.NewSpinner`)
 - [x] Config/data dir helpers (`config.Dir` / `config.DataDir`)
+- [x] Safe cross-device data-dir sync helpers (`syncdir` + `config.ResolveDir`)
 - [ ] License-check helper — deliberately not started: monetization (and
   therefore the license model it would check against) hasn't been decided
   yet, see `MONETIZATION.md` and `ROADMAP.md` in the root repo
