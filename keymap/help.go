@@ -27,6 +27,14 @@ func New(toolName, tagline string) *Help {
 	return h
 }
 
+// Bare starts a help overlay with no title line, for tools that already
+// render their own header/title bar around the help content (e.g.
+// budgetctl's full-width renderHeader) and would otherwise show the tool
+// name twice.
+func Bare() *Help {
+	return &Help{}
+}
+
 // Section starts a new labeled group of key rows (e.g. "Navigation").
 func (h *Help) Section(title string) *Help {
 	h.b.WriteString("\n  " + theme.Header.Render(title) + "\n")
@@ -36,6 +44,14 @@ func (h *Help) Section(title string) *Help {
 // Row adds one "key   description" line to the current section.
 func (h *Help) Row(key, desc string) *Help {
 	h.b.WriteString("  " + theme.Key.Render(fmt.Sprintf("%-9s", key)) + theme.Help.Render(desc) + "\n")
+	return h
+}
+
+// Text adds one freeform line to the current section, for explanatory
+// content that doesn't fit the key/description shape (e.g. budgetctl's
+// "an account is just a tag on transactions" paragraph).
+func (h *Help) Text(line string) *Help {
+	h.b.WriteString("  " + theme.Help.Render(line) + "\n")
 	return h
 }
 
