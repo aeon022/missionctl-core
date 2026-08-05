@@ -6,7 +6,7 @@ func clearProviderEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
 		"ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "GEMINI_MODEL",
-		"OLLAMA_HOST", "OLLAMA_MODEL", "TESTTOOL_PROVIDER",
+		"OLLAMA_HOST", "OLLAMA_MODEL", "TESTTOOL_PROVIDER", "TESTTOOL_OLLAMA_MODEL",
 	} {
 		t.Setenv(k, "")
 	}
@@ -59,6 +59,45 @@ func TestDetect_OverrideRequiresMatchingCredential(t *testing.T) {
 	_, err := Detect("TESTTOOL")
 	if err == nil {
 		t.Fatal("expected error when override provider has no credential")
+	}
+}
+
+func TestDetect_OllamaModelDefaultsToGeneralist(t *testing.T) {
+	clearProviderEnv(t)
+
+	info, err := Detect("TESTTOOL")
+	if err != nil {
+		t.Fatalf("Detect: %v", err)
+	}
+	if info.Model != "llama3.2" {
+		t.Errorf("Model = %q, want default llama3.2", info.Model)
+	}
+}
+
+func TestDetect_OllamaModelUsesSharedOverride(t *testing.T) {
+	clearProviderEnv(t)
+	t.Setenv("OLLAMA_MODEL", "mistral-nemo")
+
+	info, err := Detect("TESTTOOL")
+	if err != nil {
+		t.Fatalf("Detect: %v", err)
+	}
+	if info.Model != "mistral-nemo" {
+		t.Errorf("Model = %q, want shared OLLAMA_MODEL value", info.Model)
+	}
+}
+
+func TestDetect_PerToolOllamaModelWinsOverShared(t *testing.T) {
+	clearProviderEnv(t)
+	t.Setenv("OLLAMA_MODEL", "mistral-nemo")
+	t.Setenv("TESTTOOL_OLLAMA_MODEL", "codestral")
+
+	info, err := Detect("TESTTOOL")
+	if err != nil {
+		t.Fatalf("Detect: %v", err)
+	}
+	if info.Model != "codestral" {
+		t.Errorf("Model = %q, want per-tool TESTTOOL_OLLAMA_MODEL to win over shared OLLAMA_MODEL", info.Model)
 	}
 }
 

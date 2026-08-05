@@ -10,7 +10,10 @@
 //	OLLAMA_HOST or default     → Ollama (free, fully local, no key)
 //
 // Override with <PREFIX>_PROVIDER=anthropic|openai|gemini|ollama, where
-// PREFIX is the calling tool's name in caps (e.g. MAILCTL_PROVIDER).
+// PREFIX is the calling tool's name in caps (e.g. MAILCTL_PROVIDER). When
+// on Ollama, pick a per-tool model with <PREFIX>_OLLAMA_MODEL (falls back
+// to the shared OLLAMA_MODEL, then "llama3.2") — e.g. DIARYCTL_OLLAMA_MODEL
+// for a code-aware model there while mailctl stays on a smaller, faster one.
 //
 // Deliberately not supported: reusing a claude.ai/chatgpt.com browser
 // session in place of an API key. That means scraping or replaying a
@@ -72,7 +75,15 @@ func Detect(envPrefix string) (ProviderInfo, error) {
 		return ProviderInfo{ProviderGemini, model, "Gemini " + model + " (Google, free tier)"}, nil
 	}
 	if check(ProviderOllama) {
-		model := os.Getenv("OLLAMA_MODEL")
+		// <PREFIX>_OLLAMA_MODEL lets each tool pin a different local model
+		// (e.g. a code-aware model for diaryctl, a fast small one for
+		// mailctl) — falls back to the shared OLLAMA_MODEL, then a
+		// generalist default, so existing single-model setups are
+		// unaffected.
+		model := os.Getenv(envPrefix + "_OLLAMA_MODEL")
+		if model == "" {
+			model = os.Getenv("OLLAMA_MODEL")
+		}
 		if model == "" {
 			model = "llama3.2"
 		}
