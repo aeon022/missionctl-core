@@ -48,13 +48,23 @@ type Result struct {
 // mid-rollout. Once both IDs are set, only a key whose benefit_id
 // actually matches one of them grants access.
 func (r Result) Grants(benefitID, bundleID string) bool {
-	if r.Status != "active" {
+	if !r.isValid() {
 		return false
 	}
 	if benefitID == "" && bundleID == "" {
 		return true
 	}
 	return r.BenefitID == benefitID || r.BenefitID == bundleID
+}
+
+// isValid reports whether Status represents a usable key. Polar's real
+// license-key resource uses "granted" (confirmed against the live API —
+// this package originally assumed "active" without ever having checked a
+// real response, which silently rejected every genuinely valid key).
+// "active" is still accepted too, in case a different Polar response
+// shape or a manually-set local override uses it.
+func (r Result) isValid() bool {
+	return r.Status == "granted" || r.Status == "active"
 }
 
 type activateRequest struct {
@@ -105,6 +115,15 @@ func Label(toolName string) string {
 // network error the key is still worth recording locally (status
 // "offline_pending") so a later `license status` can verify it once
 // online — this mirrors what every tool's original license.go already did.
+//
+// Not every License Key benefit has per-device activation tracking turned
+// on in Polar's dashboard (confirmed live: a real Bundle purchase key came
+// back 403 "NotPermitted" — "This license key does not support
+// activations. Use the /validate endpoint instead."). When that's the
+// case, this transparently falls back to Validate: a successful validate
+// is just as good a signal that the key is real and paid-for as an
+// activation record would be, and the customer shouldn't be blocked just
+// because the product wasn't configured to track individual devices.
 func Activate(orgID, key, label string) (Result, error) {
 	body, err := json.Marshal(activateRequest{Key: key, OrganizationID: orgID, Label: label})
 	if err != nil {
@@ -123,18 +142,40 @@ func Activate(orgID, key, label string) (Result, error) {
 		_ = json.Unmarshal(respBytes, &pr)
 		status := pr.Status
 		if status == "" {
-			status = "active"
+			status = "granted"
 		}
 		return Result{Status: status, BenefitID: pr.BenefitID}, nil
 	}
 
 	var polarErr polarError
 	_ = json.Unmarshal(respBytes, &polarErr)
+	if polarErr.Error == "NotPermitted" {
+		return Validate(orgID, key)
+	}
+
 	errMsg := "Invalid or inactive key"
 	if polarErr.Error != "" {
 		errMsg = polarErr.Error
 	}
-	return Result{Status: "invalid"}, fmt.Errorf("%s (status %d)", errMsg, resp.StatusCode)
+	err = fmt.Errorf("%s (status %d)", errMsg, resp.StatusCode)
+	if isTransientStatus(resp.StatusCode) {
+		// Rate-limited or Polar's own server hiccupping — not proof the
+		// key is bad. Empty Status (like the network-error path above)
+		// tells the caller to leave whatever's already cached alone
+		// instead of overwriting a known-good status with "invalid".
+		return Result{}, err
+	}
+	return Result{Status: "invalid"}, err
+}
+
+// isTransientStatus reports whether an HTTP status from Polar indicates a
+// temporary problem (rate limiting, their server erroring) rather than a
+// definitive answer about the key itself. Learned the hard way: a 429
+// during `license status` was overwriting a perfectly valid cached
+// "granted" status with "invalid" simply because Polar was asked too many
+// times in quick succession.
+func isTransientStatus(code int) bool {
+	return code == http.StatusTooManyRequests || code >= 500
 }
 
 // Validate re-checks a previously activated key's current status with
@@ -154,14 +195,18 @@ func Validate(orgID, key string) (Result, error) {
 	respBytes, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
-		return Result{Status: "invalid"}, fmt.Errorf("server returned status %d", resp.StatusCode)
+		err := fmt.Errorf("server returned status %d", resp.StatusCode)
+		if isTransientStatus(resp.StatusCode) {
+			return Result{}, err
+		}
+		return Result{Status: "invalid"}, err
 	}
 
 	var pr polarResponse
 	_ = json.Unmarshal(respBytes, &pr)
 	status := pr.Status
 	if status == "" {
-		status = "active"
+		status = "granted"
 	}
 	return Result{Status: status, BenefitID: pr.BenefitID}, nil
 }
