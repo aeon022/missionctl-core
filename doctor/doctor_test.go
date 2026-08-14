@@ -10,21 +10,6 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-func TestCheckFileExists(t *testing.T) {
-	dir := t.TempDir()
-	path := filepath.Join(dir, "config.yaml")
-	if c := CheckFileExists("config", path); c.OK {
-		t.Fatal("expected missing file to fail")
-	}
-
-	if err := os.WriteFile(path, []byte("x: 1\n"), 0644); err != nil {
-		t.Fatal(err)
-	}
-	if c := CheckFileExists("config", path); !c.OK {
-		t.Fatalf("expected existing file to pass, got %+v", c)
-	}
-}
-
 func TestCheckSQLite(t *testing.T) {
 	dir := t.TempDir()
 	dbPath := filepath.Join(dir, "test.db")

@@ -28,18 +28,6 @@ type Check struct {
 	Detail string // path checked, error message, or other context
 }
 
-// CheckFileExists reports whether path exists and is readable.
-func CheckFileExists(label, path string) Check {
-	info, err := os.Stat(path)
-	if err != nil {
-		return Check{Label: label, OK: false, Detail: fmt.Sprintf("%s: %v", path, err)}
-	}
-	if info.IsDir() {
-		return Check{Label: label, OK: false, Detail: fmt.Sprintf("%s: is a directory, not a file", path)}
-	}
-	return Check{Label: label, OK: true, Detail: path}
-}
-
 // CheckSQLite opens dbPath and confirms it isn't corrupt and has the
 // expected table by running a trivial `SELECT count(*)` against it.
 func CheckSQLite(label, dbPath, table string) Check {
