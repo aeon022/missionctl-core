@@ -39,6 +39,7 @@ import (
 	anthropicopt "github.com/anthropics/anthropic-sdk-go/option"
 	"github.com/openai/openai-go"
 	"github.com/openai/openai-go/option"
+	"github.com/openai/openai-go/shared"
 )
 
 // Provider identifies which LLM backend to use.
@@ -147,7 +148,25 @@ func Call(ctx context.Context, info ProviderInfo, system, prompt string, out fun
 	case ProviderAnthropic:
 		return callAnthropic(ctx, info, system, prompt, out)
 	default:
-		return callOpenAICompat(ctx, info, system, prompt, out)
+		return callOpenAICompat(ctx, info, system, prompt, out, false)
+	}
+}
+
+// CallJSON is like Call, but for callers that need a parseable JSON object
+// back (e.g. transaction categorization) rather than free text. On the
+// OpenAI-compatible path (OpenAI, Gemini, and — the case this exists for —
+// smaller local Ollama models) it sets response_format to force
+// structurally-valid JSON instead of just asking nicely in the prompt;
+// weaker local models otherwise sometimes ignore a "return only JSON"
+// instruction and reply with prose instead. Anthropic has no such
+// server-side mode, but Claude follows a JSON-only instruction reliably
+// enough on its own that it doesn't need one.
+func CallJSON(ctx context.Context, info ProviderInfo, system, prompt string) (string, error) {
+	switch info.Name {
+	case ProviderAnthropic:
+		return callAnthropic(ctx, info, system, prompt, nil)
+	default:
+		return callOpenAICompat(ctx, info, system, prompt, nil, true)
 	}
 }
 
@@ -182,7 +201,7 @@ func callAnthropic(ctx context.Context, info ProviderInfo, system, prompt string
 
 // callOpenAICompat works for OpenAI, Gemini (via its OpenAI-compatible
 // endpoint), and Ollama alike.
-func callOpenAICompat(ctx context.Context, info ProviderInfo, system, prompt string, out func(string)) (string, error) {
+func callOpenAICompat(ctx context.Context, info ProviderInfo, system, prompt string, out func(string), jsonMode bool) (string, error) {
 	var opts []option.RequestOption
 
 	switch info.Name {
@@ -207,14 +226,21 @@ func callOpenAICompat(ctx context.Context, info ProviderInfo, system, prompt str
 
 	client := openai.NewClient(opts...)
 
-	stream := client.Chat.Completions.NewStreaming(ctx, openai.ChatCompletionNewParams{
+	params := openai.ChatCompletionNewParams{
 		Model: info.Model,
 		Messages: []openai.ChatCompletionMessageParamUnion{
 			openai.SystemMessage(system),
 			openai.UserMessage(prompt),
 		},
 		MaxTokens: openai.Int(4096),
-	})
+	}
+	if jsonMode {
+		params.ResponseFormat = openai.ChatCompletionNewParamsResponseFormatUnion{
+			OfJSONObject: &shared.ResponseFormatJSONObjectParam{},
+		}
+	}
+
+	stream := client.Chat.Completions.NewStreaming(ctx, params)
 
 	var full strings.Builder
 	for stream.Next() {
