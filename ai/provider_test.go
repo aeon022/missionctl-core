@@ -62,15 +62,19 @@ func TestDetect_OverrideRequiresMatchingCredential(t *testing.T) {
 	}
 }
 
-func TestDetect_OllamaModelDefaultsToGeneralist(t *testing.T) {
+func TestDetect_OllamaModelFallsBackWhenUnreachable(t *testing.T) {
 	clearProviderEnv(t)
+	// No model pinned, and OLLAMA_HOST points nowhere — firstOllamaModel's
+	// live /api/tags lookup can't succeed, so Detect must fall back to the
+	// hardcoded default rather than erroring or returning "".
+	t.Setenv("OLLAMA_HOST", "http://127.0.0.1:1")
 
 	info, err := Detect("TESTTOOL")
 	if err != nil {
 		t.Fatalf("Detect: %v", err)
 	}
 	if info.Model != "llama3.2" {
-		t.Errorf("Model = %q, want default llama3.2", info.Model)
+		t.Errorf("Model = %q, want fallback llama3.2", info.Model)
 	}
 }
 

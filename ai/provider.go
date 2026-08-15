@@ -12,8 +12,11 @@
 // Override with <PREFIX>_PROVIDER=anthropic|openai|gemini|ollama, where
 // PREFIX is the calling tool's name in caps (e.g. MAILCTL_PROVIDER). When
 // on Ollama, pick a per-tool model with <PREFIX>_OLLAMA_MODEL (falls back
-// to the shared OLLAMA_MODEL, then "llama3.2") — e.g. DIARYCTL_OLLAMA_MODEL
-// for a code-aware model there while mailctl stays on a smaller, faster one.
+// to the shared OLLAMA_MODEL) — e.g. DIARYCTL_OLLAMA_MODEL for a code-aware
+// model there while mailctl stays on a smaller, faster one. With neither
+// set, it asks the local Ollama daemon which model is actually pulled
+// (GET /api/tags) instead of guessing a name that might 404; "llama3.2"
+// is the last-resort fallback only if that lookup itself fails.
 //
 // Deliberately not supported: reusing a claude.ai/chatgpt.com browser
 // session in place of an API key. That means scraping or replaying a
@@ -24,10 +27,13 @@ package ai
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"reflect"
 	"strings"
+	"time"
 
 	anthropic "github.com/anthropics/anthropic-sdk-go"
 	anthropicopt "github.com/anthropics/anthropic-sdk-go/option"
@@ -85,6 +91,13 @@ func Detect(envPrefix string) (ProviderInfo, error) {
 			model = os.Getenv("OLLAMA_MODEL")
 		}
 		if model == "" {
+			// No model pinned by the user — ask Ollama itself what's
+			// actually pulled instead of guessing a name (the old
+			// hardcoded "llama3.2" default just 404'd for anyone who'd
+			// pulled a different model, which is the common case).
+			model = firstOllamaModel()
+		}
+		if model == "" {
 			model = "llama3.2"
 		}
 		return ProviderInfo{ProviderOllama, model, fmt.Sprintf("Ollama (%s, local)", model)}, nil
@@ -96,6 +109,35 @@ func Detect(envPrefix string) (ProviderInfo, error) {
 	return ProviderInfo{}, fmt.Errorf(
 		"no AI provider configured — set ANTHROPIC_API_KEY, OPENAI_API_KEY, a free GEMINI_API_KEY (aistudio.google.com/apikey), or run Ollama locally (ollama.com) with no key needed",
 	)
+}
+
+// firstOllamaModel asks the local Ollama daemon which models are actually
+// pulled and returns the first one, or "" if Ollama isn't reachable or has
+// no models — callers fall back to a hardcoded default in that case.
+func firstOllamaModel() string {
+	host := os.Getenv("OLLAMA_HOST")
+	if host == "" {
+		host = "http://localhost:11434"
+	}
+	client := http.Client{Timeout: 2 * time.Second}
+	resp, err := client.Get(host + "/api/tags")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		if resp != nil {
+			resp.Body.Close()
+		}
+		return ""
+	}
+	defer resp.Body.Close()
+
+	var tags struct {
+		Models []struct {
+			Name string `json:"name"`
+		} `json:"models"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&tags); err != nil || len(tags.Models) == 0 {
+		return ""
+	}
+	return tags.Models[0].Name
 }
 
 // Call dispatches to the correct provider backend and returns the full
