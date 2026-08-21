@@ -4,7 +4,6 @@ import (
 	"image/color"
 	"os"
 
-	spinnerv2 "charm.land/bubbles/v2/spinner"
 	lipglossv2 "charm.land/lipgloss/v2"
 	"github.com/charmbracelet/lipgloss"
 )
@@ -35,15 +34,7 @@ var (
 	OnAccentV2   color.Color
 )
 
-var (
-	HeaderV2   lipglossv2.Style
-	HelpV2     lipglossv2.Style
-	OKV2       lipglossv2.Style
-	ErrV2      lipglossv2.Style
-	KeyV2      lipglossv2.Style
-	SelectedV2 lipglossv2.Style
-	HoverV2    lipglossv2.Style
-)
+var HoverV2 lipglossv2.Style
 
 // resolve picks c's light or dark value the same way lipgloss v1's
 // AdaptiveColor did — once, at startup — rather than v2's default of
@@ -69,19 +60,5 @@ func init() {
 	HoverBgV2 = resolve(HoverBg, dark)
 	OnAccentV2 = resolve(OnAccent, dark)
 
-	HeaderV2 = lipglossv2.NewStyle().Bold(true).Foreground(BlueV2)
-	HelpV2 = lipglossv2.NewStyle().Foreground(MutedV2)
-	OKV2 = lipglossv2.NewStyle().Foreground(GreenV2)
-	ErrV2 = lipglossv2.NewStyle().Foreground(RedV2).Bold(true)
-	KeyV2 = lipglossv2.NewStyle().Foreground(AmberV2)
-	SelectedV2 = lipglossv2.NewStyle().Background(SelectedBgV2).Foreground(SelectedFgV2).Padding(0, 1)
 	HoverV2 = lipglossv2.NewStyle().Background(HoverBgV2)
-}
-
-// NewSpinnerV2 is NewSpinner for a Bubble Tea v2 consumer.
-func NewSpinnerV2(style lipglossv2.Style) spinnerv2.Model {
-	sp := spinnerv2.New()
-	sp.Spinner = spinnerv2.MiniDot
-	sp.Style = style
-	return sp
 }

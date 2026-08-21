@@ -28,10 +28,10 @@ package ai
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 	"time"
 
@@ -289,17 +289,13 @@ func friendlyNetErr(err error) error {
 }
 
 func httpStatusCode(err error) (int, bool) {
-	if err == nil {
-		return 0, false
+	var aErr *anthropic.Error
+	if errors.As(err, &aErr) && aErr.StatusCode >= 400 {
+		return aErr.StatusCode, true
 	}
-	v := reflect.ValueOf(err)
-	if v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-	if f := v.FieldByName("StatusCode"); f.IsValid() && f.Kind() == reflect.Int {
-		if code := int(f.Int()); code >= 400 {
-			return code, true
-		}
+	var oErr *openai.Error
+	if errors.As(err, &oErr) && oErr.StatusCode >= 400 {
+		return oErr.StatusCode, true
 	}
 	return 0, false
 }

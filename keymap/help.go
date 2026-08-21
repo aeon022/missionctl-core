@@ -47,14 +47,6 @@ func (h *Help) Row(key, desc string) *Help {
 	return h
 }
 
-// Text adds one freeform line to the current section, for explanatory
-// content that doesn't fit the key/description shape (e.g. budgetctl's
-// "an account is just a tag on transactions" paragraph).
-func (h *Help) Text(line string) *Help {
-	h.b.WriteString("  " + theme.Help.Render(line) + "\n")
-	return h
-}
-
 // String renders the accumulated help body.
 func (h *Help) String() string {
 	return h.b.String()
