@@ -46,3 +46,57 @@ func TestLoadOverrides_NoConfigFile(t *testing.T) {
 		t.Errorf("Blue = %+v, want unchanged default %+v when no config file exists", Blue, origBlue)
 	}
 }
+
+func writeThemeConfig(t *testing.T, yamlContent string) {
+	t.Helper()
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	if err := os.MkdirAll(filepath.Join(dir, ".config", "missionctl"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, ".config", "missionctl", "theme.yaml")
+	if err := os.WriteFile(path, []byte(yamlContent), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestLoadOverrides_Preset(t *testing.T) {
+	origBlue := Blue
+	t.Cleanup(func() { Blue = origBlue })
+
+	writeThemeConfig(t, "preset: dracula\n")
+	loadOverrides()
+
+	want := presets["dracula"].Blue.Dark
+	if Blue.Dark != want {
+		t.Errorf("Blue.Dark = %q, want Dracula's %q", Blue.Dark, want)
+	}
+}
+
+func TestLoadOverrides_PresetWithPerKeyOverride(t *testing.T) {
+	origBlue, origGreen := Blue, Green
+	t.Cleanup(func() { Blue, Green = origBlue, origGreen })
+
+	writeThemeConfig(t, "preset: dracula\nblue:\n  dark: \"#123456\"\n")
+	loadOverrides()
+
+	if Blue.Dark != "#123456" {
+		t.Errorf("Blue.Dark = %q, want per-key override %q to win over preset", Blue.Dark, "#123456")
+	}
+	wantGreen := presets["dracula"].Green.Dark
+	if Green.Dark != wantGreen {
+		t.Errorf("Green.Dark = %q, want Dracula's %q (untouched by per-key overrides)", Green.Dark, wantGreen)
+	}
+}
+
+func TestLoadOverrides_UnknownPreset(t *testing.T) {
+	origBlue := Blue
+	t.Cleanup(func() { Blue = origBlue })
+
+	writeThemeConfig(t, "preset: not-a-real-theme\n")
+	loadOverrides()
+
+	if Blue != origBlue {
+		t.Errorf("Blue = %+v, want unchanged default %+v for an unknown preset name", Blue, origBlue)
+	}
+}
