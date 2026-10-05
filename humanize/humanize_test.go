@@ -34,3 +34,24 @@ func TestTimeAgo_FutureIsJustNow(t *testing.T) {
 		t.Errorf("TimeAgo(future) = %q, want %q", got, "just now")
 	}
 }
+
+func TestTruncate(t *testing.T) {
+	cases := []struct {
+		in   string
+		n    int
+		want string
+	}{
+		{"hello", 5, "hello"},
+		{"hello", 4, "hel…"},
+		{"héllo wörld", 6, "héllo…"}, // counts runes, not bytes
+		{"hello", 1, "…"},
+		{"hello", 0, ""},
+		{"hello", -3, ""},
+		{"", 3, ""},
+	}
+	for _, c := range cases {
+		if got := Truncate(c.in, c.n); got != c.want {
+			t.Errorf("Truncate(%q, %d) = %q, want %q", c.in, c.n, got, c.want)
+		}
+	}
+}

@@ -33,3 +33,16 @@ func timeAgoSince(t, now time.Time) string {
 		return fmt.Sprintf("%dd ago", days)
 	}
 }
+
+// Truncate shortens s to at most n runes, ending in "…" when it cuts.
+// Unlike a bare s[:n-1], it is safe for n <= 1 (n <= 0 yields "").
+func Truncate(s string, n int) string {
+	r := []rune(s)
+	if len(r) <= n {
+		return s
+	}
+	if n <= 0 {
+		return ""
+	}
+	return string(r[:n-1]) + "…"
+}
