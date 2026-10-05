@@ -28,12 +28,15 @@ type Store struct {
 	data         map[string]any
 }
 
-func NewStore(name, envPrefix string) *Store {
-	return &Store{name: name, prefix: envPrefix, data: map[string]any{}}
-}
+func NewStore(name string) *Store { return &Store{name: name, data: map[string]any{}} }
 
-// Reset clears everything but name and prefix (for tests).
-func (s *Store) Reset() { s.paths, s.data = nil, map[string]any{} }
+// SetEnvPrefix turns on env overrides (<PREFIX>_<KEY>). Off until called, so
+// code that never loads config (tests) can't be redirected by the shell.
+func (s *Store) SetEnvPrefix(p string) { s.prefix = p }
+
+// Reset clears everything, including the env prefix, so tests are isolated
+// from the developer's shell environment.
+func (s *Store) Reset() { s.prefix, s.paths, s.data = "", nil, map[string]any{} }
 
 // AddPath adds a directory to search for <name>.yaml; $VARS are expanded.
 func (s *Store) AddPath(dir string) { s.paths = append(s.paths, os.ExpandEnv(dir)) }

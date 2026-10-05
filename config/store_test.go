@@ -14,7 +14,8 @@ type testCfg struct {
 
 func TestStore(t *testing.T) {
 	dir := t.TempDir()
-	s := NewStore("app", "APPT")
+	s := NewStore("app")
+	s.SetEnvPrefix("APPT")
 	s.AddPath(dir)
 	s.SetDefault("n", 30)
 	s.SetDefault("name", "")
@@ -31,7 +32,8 @@ func TestStore(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	s2 := NewStore("app", "APPT")
+	s2 := NewStore("app")
+	s2.SetEnvPrefix("APPT")
 	s2.AddPath(dir)
 	if err := s2.Read(); err != nil {
 		t.Fatal(err)
