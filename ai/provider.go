@@ -59,6 +59,15 @@ type ProviderInfo struct {
 	Display string // human-readable label for status lines
 }
 
+// GeminiAvailable and GeminiKey let a tool supply Gemini credentials beyond
+// GEMINI_API_KEY (habctl: a Google OAuth refresh token). Both optional.
+// GeminiAvailable must be cheap (no network) — Detect calls it; GeminiKey may
+// do the token exchange and returns "" to fall back to GEMINI_API_KEY.
+var (
+	GeminiAvailable func() bool
+	GeminiKey       func() string
+)
+
 // Detect returns the active provider based on environment variables.
 // envPrefix (e.g. "MAILCTL") makes <envPrefix>_PROVIDER override auto-detection.
 func Detect(envPrefix string) (ProviderInfo, error) {
@@ -74,7 +83,7 @@ func Detect(envPrefix string) (ProviderInfo, error) {
 	if check(ProviderOpenAI) && os.Getenv("OPENAI_API_KEY") != "" {
 		return ProviderInfo{ProviderOpenAI, "gpt-4o-mini", "GPT-4o mini (OpenAI)"}, nil
 	}
-	if check(ProviderGemini) && os.Getenv("GEMINI_API_KEY") != "" {
+	if check(ProviderGemini) && (os.Getenv("GEMINI_API_KEY") != "" || (GeminiAvailable != nil && GeminiAvailable())) {
 		model := os.Getenv("GEMINI_MODEL")
 		if model == "" {
 			model = "gemini-flash-latest"
@@ -208,8 +217,14 @@ func callOpenAICompat(ctx context.Context, info ProviderInfo, system, prompt str
 	case ProviderOpenAI:
 		opts = append(opts, option.WithAPIKey(os.Getenv("OPENAI_API_KEY")))
 	case ProviderGemini:
+		key := os.Getenv("GEMINI_API_KEY")
+		if GeminiKey != nil {
+			if k := GeminiKey(); k != "" {
+				key = k
+			}
+		}
 		opts = append(opts,
-			option.WithAPIKey(os.Getenv("GEMINI_API_KEY")),
+			option.WithAPIKey(key),
 			option.WithBaseURL("https://generativelanguage.googleapis.com/v1beta/openai/"),
 			option.WithMaxRetries(0), // free tier: no automatic retries — each retry burns quota
 		)
