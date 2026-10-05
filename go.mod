@@ -3,7 +3,7 @@ module github.com/aeon022/missionctl-core
 go 1.26.5
 
 require (
-	charm.land/bubbles/v2 v2.1.1
+	charm.land/bubbletea/v2 v2.0.7
 	charm.land/lipgloss/v2 v2.0.6
 	github.com/anthropics/anthropic-sdk-go v1.57.0
 	github.com/charmbracelet/bubbles v1.0.0
@@ -16,7 +16,6 @@ require (
 )
 
 require (
-	charm.land/bubbletea/v2 v2.0.7 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.2 // indirect

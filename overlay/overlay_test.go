@@ -122,3 +122,17 @@ func TestCenter_ShortBackgroundLineDoesNotShiftPopupColumn(t *testing.T) {
 		}
 	}
 }
+
+func TestCenterDimKeepsPopupSharpAndFadesBackground(t *testing.T) {
+	bg := strings.Repeat("\x1b[31mbackground line\x1b[0m\n", 5)
+	out := CenterDim(bg, "POP", 20, 5, 0)
+	if !strings.Contains(out, "POP") {
+		t.Fatalf("popup missing:\n%s", out)
+	}
+	if strings.Contains(out, "\x1b[31m") {
+		t.Error("original background colors should be replaced by the dimmed style")
+	}
+	if !strings.Contains(out, "\x1b[2m") {
+		t.Error("expected faint (SGR 2) on the background")
+	}
+}

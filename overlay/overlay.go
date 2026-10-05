@@ -74,3 +74,14 @@ func clampInt(v, lo, hi int) int {
 	}
 	return min(max(v, lo), hi)
 }
+
+// CenterDim is Center with the background dimmed behind the popup, so the
+// popup reads as modal. The background loses its own colors (faint, plain
+// text): re-coloring already-styled lines safely isn't possible.
+func CenterDim(background, popup string, width, height, inset int) string {
+	lines := strings.Split(ansi.Strip(background), "\n")
+	for i, l := range lines {
+		lines[i] = "\x1b[2m" + l + "\x1b[0m" // SGR 2 = faint; independent of the color profile
+	}
+	return Center(strings.Join(lines, "\n"), popup, width, height, inset)
+}
