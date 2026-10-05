@@ -79,6 +79,11 @@ type Lock struct {
 // (wrapped) if another live process already holds it.
 func Acquire(dbPath string) (*Lock, error) {
 	lockPath := dbPath + ".lock"
+	// First run on a fresh machine: the data directory may not exist yet, and
+	// this runs before the store would create it.
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+		return nil, fmt.Errorf("syncdir: creating %s: %w", filepath.Dir(dbPath), err)
+	}
 	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
 	if err != nil {
 		return nil, fmt.Errorf("syncdir: opening %s: %w", lockPath, err)

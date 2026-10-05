@@ -79,3 +79,16 @@ func TestICloudPlaceholder(t *testing.T) {
 		t.Errorf("placeholderPath = %q, want %q", path, placeholder)
 	}
 }
+
+func TestAcquireCreatesMissingDataDir(t *testing.T) {
+	// first run on a new machine: ~/.local/share/<tool> doesn't exist yet
+	db := filepath.Join(t.TempDir(), "does", "not", "exist", "tool.db")
+	l, err := Acquire(db)
+	if err != nil {
+		t.Fatalf("Acquire in a missing directory: %v", err)
+	}
+	defer l.Release()
+	if _, err := os.Stat(db + ".lock"); err != nil {
+		t.Errorf("lock file not created: %v", err)
+	}
+}
