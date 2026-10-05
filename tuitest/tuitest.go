@@ -101,10 +101,17 @@ func Keys(m tea.Model, names ...string) (tea.Model, []tea.Cmd) {
 // Text is the model's rendered view with all ANSI styling removed.
 func Text(m tea.Model) string { return ansi.Strip(m.View().Content) }
 
-// Smoke sizes the model to 100x30, renders it, then presses each key and
-// renders again. It fails the test on a panic or an empty frame — the cheap
-// "does it still work at all" check every TUI should have.
+// Smoke is SmokeSize at 100x30.
 func Smoke(t *testing.T, m tea.Model, keys ...string) {
+	t.Helper()
+	SmokeSize(t, m, 100, 30, keys...)
+}
+
+// SmokeSize sizes the model to w×h, renders it, then presses each key and
+// renders again. It fails the test on a panic or an empty frame — the cheap
+// "does it still work at all" check every TUI should have. It returns
+// nothing; use Send/Keys when the final model matters.
+func SmokeSize(t *testing.T, m tea.Model, w, h int, keys ...string) {
 	t.Helper()
 	step := "initial resize"
 	defer func() {
@@ -112,7 +119,7 @@ func Smoke(t *testing.T, m tea.Model, keys ...string) {
 			t.Fatalf("panic after %s: %v", step, r)
 		}
 	}()
-	m, _ = Send(m, Resize(100, 30))
+	m, _ = Send(m, Resize(w, h))
 	if strings.TrimSpace(Text(m)) == "" {
 		t.Fatal("empty view after resize")
 	}

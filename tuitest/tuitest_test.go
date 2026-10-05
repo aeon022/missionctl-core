@@ -65,3 +65,7 @@ func TestKeyUnknownPanics(t *testing.T) {
 	}()
 	Key("nope")
 }
+
+func TestSmokeSizeDeliversSize(t *testing.T) {
+	SmokeSize(t, probe{}, 60, 15, "a")
+}
