@@ -18,10 +18,12 @@ var named = map[string]rune{
 	"backspace": tea.KeyBackspace, "delete": tea.KeyDelete, "space": tea.KeySpace,
 	"up": tea.KeyUp, "down": tea.KeyDown, "left": tea.KeyLeft, "right": tea.KeyRight,
 	"pgup": tea.KeyPgUp, "pgdown": tea.KeyPgDown, "home": tea.KeyHome, "end": tea.KeyEnd,
+	"f1": tea.KeyF1, "f2": tea.KeyF2, "f3": tea.KeyF3, "f4": tea.KeyF4, "f5": tea.KeyF5, "f6": tea.KeyF6,
+	"f7": tea.KeyF7, "f8": tea.KeyF8, "f9": tea.KeyF9, "f10": tea.KeyF10, "f11": tea.KeyF11, "f12": tea.KeyF12,
 }
 
 // Key builds the key press a terminal delivers for name: "enter", "esc",
-// "space", "tab", "shift+tab", "up", "ctrl+c", "alt+x", or a single character
+// "space", "tab", "shift+tab", "up", "f1".."f12", "ctrl+c", "alt+x", or a single character
 // such as "?" or "V". Note v2 reports the space bar as "space", not " ".
 func Key(name string) tea.KeyPressMsg {
 	var mod tea.KeyMod

@@ -30,7 +30,7 @@ func TestKeyStrings(t *testing.T) {
 	for in, want := range map[string]string{
 		"space": "space", "enter": "enter", "esc": "esc", "tab": "tab",
 		"shift+tab": "shift+tab", "ctrl+c": "ctrl+c", "alt+x": "alt+x",
-		"?": "?", "V": "V", "a": "a", "up": "up", "pgdown": "pgdown",
+		"?": "?", "V": "V", "a": "a", "up": "up", "pgdown": "pgdown", "f1": "f1", "f12": "f12",
 	} {
 		if got := Key(in).String(); got != want {
 			t.Errorf("Key(%q).String() = %q, want %q", in, got, want)
