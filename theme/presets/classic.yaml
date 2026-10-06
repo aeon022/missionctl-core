@@ -1,0 +1,34 @@
+# "classic" — the suite's original fixed 256-color palette (the default before
+# the "terminal" preset became the default). Use it with
+# `preset: classic` in ~/.config/missionctl/theme.yaml to get the old look back.
+
+blue:
+  light: "25"
+  dark: "33"
+green:
+  light: "28"
+  dark: "42"
+red:
+  light: "160"
+  dark: "203"
+amber:
+  light: "214"
+  dark: "220"
+muted:
+  light: "243"
+  dark: "246"
+subtle:
+  light: "250"
+  dark: "244"
+selected_bg:
+  light: "189"
+  dark: "17"
+selected_fg:
+  light: "16"
+  dark: "255"
+hover_bg:
+  light: "252"
+  dark: "236"
+on_accent:
+  light: "15"
+  dark: "15"

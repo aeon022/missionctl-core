@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strconv"
 	"testing"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
 func TestLoadOverrides(t *testing.T) {
@@ -121,4 +123,39 @@ func TestTerminalPresetUsesOnlyAnsiPaletteColors(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestDefaultPresetIsTerminalClassicRestoresOldPalette(t *testing.T) {
+	orig := Blue
+	t.Cleanup(func() { Blue = orig })
+
+	t.Setenv("HOME", t.TempDir()) // no theme.yaml at all
+	Blue = lipglossAdaptive("1", "2")
+	loadOverrides()
+	if want := presets["terminal"].Blue; Blue.Dark != want.Dark || Blue.Light != want.Light {
+		t.Errorf("no config: Blue = %+v, want the terminal preset %+v", Blue, want)
+	}
+
+	writeThemeConfig(t, "preset: classic\n")
+	loadOverrides()
+	if Blue.Light != "25" || Blue.Dark != "33" {
+		t.Errorf("preset: classic must restore the original palette, got %+v", Blue)
+	}
+
+	writeThemeConfig(t, "preset: no-such-theme\n")
+	Blue = lipglossAdaptive("1", "2")
+	loadOverrides()
+	if want := presets["terminal"].Blue; Blue.Dark != want.Dark {
+		t.Errorf("unknown preset must fall back to the default, got %+v", Blue)
+	}
+
+	writeThemeConfig(t, "preset: classic\nblue:\n  dark: \"77\"\n")
+	loadOverrides()
+	if Blue.Dark != "77" || Blue.Light != "25" {
+		t.Errorf("a per-key override wins over the preset: %+v", Blue)
+	}
+}
+
+func lipglossAdaptive(light, dark string) lipgloss.AdaptiveColor {
+	return lipgloss.AdaptiveColor{Light: light, Dark: dark}
 }

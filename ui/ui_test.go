@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -205,7 +206,8 @@ func TestSelectedRowKeepsInnerStylingAndBackground(t *testing.T) {
 	i := strings.Index(row, "overdue")
 	rest := row[i:]
 	j := strings.Index(rest, "\x1b[m")
-	if j < 0 || !strings.HasPrefix(rest[j+3:], "\x1b[48;") {
+	// the background SGR depends on the theme: 48;5;N (256 colors) or 4x / 10x (ANSI palette)
+	if j < 0 || !regexp.MustCompile(`^\x1b\[(48;|4\d|10\d)`).MatchString(rest[j+3:]) {
 		t.Errorf("selection background not re-applied after the pill: %q", rest)
 	}
 }

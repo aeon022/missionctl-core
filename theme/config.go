@@ -75,25 +75,29 @@ func loadPresets() map[string]themeConfig {
 // Silently does nothing when the file is missing or unreadable — same "not
 // configured is not an error" convention diaryctl's notectl writeback uses.
 func loadOverrides() {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return
-	}
-	data, err := os.ReadFile(filepath.Join(home, ".config", "missionctl", "theme.yaml"))
-	if err != nil {
-		return
-	}
 	var cfg themeConfig
-	if yaml.Unmarshal(data, &cfg) != nil {
-		return
-	}
-	if cfg.Preset != "" {
-		if preset, ok := presets[strings.ToLower(cfg.Preset)]; ok {
-			applyConfig(preset)
+	if home, err := os.UserHomeDir(); err == nil {
+		if data, err := os.ReadFile(filepath.Join(home, ".config", "missionctl", "theme.yaml")); err == nil {
+			_ = yaml.Unmarshal(data, &cfg) // unreadable/invalid = no overrides
 		}
 	}
+	name := strings.ToLower(cfg.Preset)
+	if name == "" {
+		name = DefaultPreset
+	}
+	preset, ok := presets[name]
+	if !ok { // misspelled name: behave like no preset rather than an odd palette
+		preset = presets[DefaultPreset]
+	}
+	applyConfig(preset)
 	applyConfig(cfg)
 }
+
+// DefaultPreset is applied when theme.yaml names no preset (or doesn't exist):
+// "terminal" — the terminal's own ANSI palette, so the suite follows whatever
+// theme the terminal runs. `preset: classic` restores the original fixed
+// 256-color palette.
+const DefaultPreset = "terminal"
 
 func applyConfig(cfg themeConfig) {
 	apply(&Blue, cfg.Blue)

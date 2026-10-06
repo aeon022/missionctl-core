@@ -294,6 +294,12 @@ body = activity.ReplaceBlock(body, block)         // refreshes the block in plac
   only log when something actually changed (e.g. habctl logs a check-in only when a row was
   created). Test with `MISSIONCTL_DATA_DIR` and `HOME` pointing at temp dirs.
 
+### theme presets
+
+`theme` applies `preset:` from `~/.config/missionctl/theme.yaml` first, then per-key overrides. With no file the
+default preset is **`terminal`** (only ANSI 0–15, follows the terminal's theme); `classic` is the old fixed
+256-color palette. See the root README, “Themes”.
+
 ### ui
 
 The suite's visual vocabulary — small functions returning styled strings built on `theme`, so
