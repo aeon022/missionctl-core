@@ -265,6 +265,35 @@ if errors.Is(err, syncdir.ErrLocked) { /* another process has the DB open */ }
 defer lock.Release()
 ```
 
+### activity
+
+The suite's shared activity log. A tool calls it at the point where the **user** does
+something (never in sync/import paths); `missionctl log` and diaryctl read it back.
+
+```go
+import "github.com/aeon022/missionctl-core/activity"
+
+activity.Log("taskctl", "completed", task.Title) // best-effort, titles only
+
+from, to := activity.Day(time.Now())
+events, _ := activity.Read(from, to)              // oldest first
+block := activity.MarkdownBlock(events)           // "<!-- activity:start --> ## Activity …"
+body = activity.ReplaceBlock(body, block)         // refreshes the block in place, keeps the rest
+```
+
+- **Privacy:** titles only, truncated to 120 runes — never note bodies, mail text,
+  recipient addresses or amounts. `Log` never returns an error and never breaks the
+  action it describes (a single `O_APPEND` write per line, safe across tools).
+- **Where it lives:** `$MISSIONCTL_DATA_DIR` or `~/.local/share/missionctl/activity.jsonl`.
+- **Settings** (`~/.config/missionctl/activity.yaml`; `MISSIONCTL_ACTIVITY=off` also disables
+  logging): `enabled: true|false` and `diary: ask|auto|off` (what diaryctl does with the
+  day's activity). `activity.Load()`, `SetEnabled`, `SetDiaryMode`.
+- **Actions** in use: `added`, `completed`, `deleted`, `checked`, `started`, `stopped`,
+  `wrote`, `sent`, `unsubscribed`, `published`, `scheduled`, `imported`.
+- **Hooking a new intent:** put the call in the lowest function CLI, TUI and MCP share, and
+  only log when something actually changed (e.g. habctl logs a check-in only when a row was
+  created). Test with `MISSIONCTL_DATA_DIR` and `HOME` pointing at temp dirs.
+
 ### keymap.Text
 
 `Help.Text(line)` adds one freeform line to the current section — for
