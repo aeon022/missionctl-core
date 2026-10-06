@@ -294,6 +294,32 @@ body = activity.ReplaceBlock(body, block)         // refreshes the block in plac
   only log when something actually changed (e.g. habctl logs a check-in only when a row was
   created). Test with `MISSIONCTL_DATA_DIR` and `HOME` pointing at temp dirs.
 
+### ui
+
+The suite's visual vocabulary — small functions returning styled strings built on `theme`, so
+every tool follows the user's theme preset and light/dark mode. Preview them all with
+`missionctl ui-demo` (`--all` for every preset).
+
+```go
+import "github.com/aeon022/missionctl-core/ui"
+
+ui.Pill("overdue", ui.Err)            // filled badge; kinds: Info, OK, Warn, Err, Muted
+ui.Hint("enter", "open")              // key cap + dimmed description (ui.KeyCap for the cap alone)
+ui.Bar(30, spent/limit, true)         // 1/8-cell bar; true = green→amber→red as it fills
+ui.Spark(minutesPerDay)               // ▁▂▃▅█ scaled to the max
+ui.Heat(level, 4)                     // one heatmap cell
+ui.Toast(ui.OK, "Saved")              // "✓ Saved"
+ui.Header(width, "budgetctl", "profile: firma", "synced 2m ago") // drops the middle first
+ui.Row(width, selected, text)         // accent bar ▌ + full-width background when selected
+ui.RelTime(due, time.Now())           // today · tomorrow · in 3d · 3d ago · Oct 20
+ui.MidEllipsis("Rechnung_…_Q3.pdf", 20)
+ui.Money(-64.30, 12)                  // right-aligned, red/green, dimmed cents
+ui.Icon("mail")                       // ✉ — or the Nerd Font glyph with MISSIONCTL_ICONS=nerd
+```
+
+All widths are exact display cells (wide characters included), so the pieces compose without
+wrapping. Nerd Font glyphs are opt-in; the default needs no special font.
+
 ### keymap.Text
 
 `Help.Text(line)` adds one freeform line to the current section — for
