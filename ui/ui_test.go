@@ -186,3 +186,26 @@ func TestIconsUnicodeDefaultAndNerdOptIn(t *testing.T) {
 		t.Error("env unicode")
 	}
 }
+
+func TestSelectedRowKeepsInnerStylingAndBackground(t *testing.T) {
+	pill := Pill("overdue", Err)
+	row := Row(40, true, "buy milk "+pill)
+	if lipgloss.Width(row) != 40 {
+		t.Errorf("width %d", lipgloss.Width(row))
+	}
+	if got := strings.TrimRight(plain(row), " "); got != "▌ buy milk  overdue" {
+		t.Errorf("visible text changed: %q", got)
+	}
+	// the pill's own style (the sequence right before its text) must survive …
+	styleSeq := pill[strings.Index(pill, "\x1b[m")+3 : strings.Index(pill, "overdue")]
+	if !strings.Contains(row, styleSeq+"overdue") {
+		t.Errorf("selected row lost the pill's own colors:\n%q", row)
+	}
+	// … and after the pill's reset the selection background must be painted again
+	i := strings.Index(row, "overdue")
+	rest := row[i:]
+	j := strings.Index(rest, "\x1b[m")
+	if j < 0 || !strings.HasPrefix(rest[j+3:], "\x1b[48;") {
+		t.Errorf("selection background not re-applied after the pill: %q", rest)
+	}
+}

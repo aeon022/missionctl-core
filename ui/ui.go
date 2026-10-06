@@ -191,7 +191,23 @@ func Row(width int, selected bool, text string) string {
 		return "  " + text + pad
 	}
 	bar := lipgloss.NewStyle().Foreground(theme.BlueV2).Render("▌")
-	return bar + lipgloss.NewStyle().Background(theme.SelectedBgV2).Render(" "+ansi.Strip(text)+pad)
+	return bar + withBackground(" "+text+pad, theme.SelectedBgV2)
+}
+
+// withBackground paints bg behind text that may already contain styled
+// segments (pills, colored amounts): every SGR reset inside text is followed
+// by the background again, so the selection bar stays unbroken while the
+// segments keep their own colors.
+func withBackground(text string, bg color.Color) string {
+	probe := lipgloss.NewStyle().Background(bg).Render("\x00")
+	i := strings.Index(probe, "\x00")
+	if i < 0 {
+		return text
+	}
+	pre, post := probe[:i], probe[i+1:]
+	text = strings.ReplaceAll(text, "\x1b[0m", "\x1b[0m"+pre)
+	text = strings.ReplaceAll(text, "\x1b[m", "\x1b[m"+pre)
+	return pre + text + post
 }
 
 // ── Text helpers ─────────────────────────────────────────────────────────────
