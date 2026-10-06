@@ -97,6 +97,16 @@ func SetDiaryMode(m DiaryMode) error {
 	return s.Write(settingsFile())
 }
 
+// SetEnabled turns logging on or off persistently, keeping other settings.
+func SetEnabled(on bool) error {
+	s := newStore()
+	s.Set("enabled", on)
+	if err := os.MkdirAll(filepath.Dir(settingsFile()), 0o755); err != nil {
+		return err
+	}
+	return s.Write(settingsFile())
+}
+
 var mu sync.Mutex
 
 // Log appends one event. Best-effort: errors are swallowed, and it does

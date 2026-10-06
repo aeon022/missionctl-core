@@ -117,3 +117,22 @@ func TestMarkdownBlockAndReplace(t *testing.T) {
 		t.Error("empty block leaves the body alone")
 	}
 }
+
+func TestSetEnabledPersistsAndKeepsDiaryMode(t *testing.T) {
+	sandbox(t)
+	if err := SetDiaryMode(DiaryAuto); err != nil {
+		t.Fatal(err)
+	}
+	if err := SetEnabled(false); err != nil {
+		t.Fatal(err)
+	}
+	if st := Load(); st.Enabled || st.Diary != DiaryAuto {
+		t.Errorf("after SetEnabled(false): %+v", st)
+	}
+	if err := SetEnabled(true); err != nil {
+		t.Fatal(err)
+	}
+	if !Load().Enabled {
+		t.Error("re-enable")
+	}
+}
