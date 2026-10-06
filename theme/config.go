@@ -64,7 +64,8 @@ func loadPresets() map[string]themeConfig {
 // resolves the palette in two tiers on top of the package defaults:
 //
 //  1. `preset:` — one of the built-in named palettes (currently catppuccin,
-//     dracula, gruvbox, nord, one-dark, solarized, tokyo-night), applied
+//     dracula, gruvbox, nord, one-dark, solarized, tokyo-night, and
+//     terminal = your terminal's own ANSI palette), applied
 //     wholesale first. An unknown/misspelled name is silently ignored, same
 //     as a missing config file — not every user wants to customize.
 //  2. Per-key overrides (`blue:`, `green:`, …) from the same file, applied

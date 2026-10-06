@@ -3,6 +3,7 @@ package theme
 import (
 	"os"
 	"path/filepath"
+	"strconv"
 	"testing"
 )
 
@@ -98,5 +99,26 @@ func TestLoadOverrides_UnknownPreset(t *testing.T) {
 
 	if Blue != origBlue {
 		t.Errorf("Blue = %+v, want unchanged default %+v for an unknown preset name", Blue, origBlue)
+	}
+}
+
+func TestTerminalPresetUsesOnlyAnsiPaletteColors(t *testing.T) {
+	p, ok := presets["terminal"]
+	if !ok {
+		t.Fatal("terminal preset missing")
+	}
+	for name, c := range map[string]*colorOverride{
+		"blue": p.Blue, "green": p.Green, "red": p.Red, "amber": p.Amber, "muted": p.Muted, "subtle": p.Subtle,
+		"selected_bg": p.SelectedBg, "selected_fg": p.SelectedFg, "hover_bg": p.HoverBg, "on_accent": p.OnAccent,
+	} {
+		if c == nil {
+			t.Errorf("%s not set", name)
+			continue
+		}
+		for _, v := range []string{c.Light, c.Dark} {
+			if n, err := strconv.Atoi(v); err != nil || n < 0 || n > 15 {
+				t.Errorf("%s uses %q — the terminal preset must stay inside ANSI 0-15 so it follows the terminal theme", name, v)
+			}
+		}
 	}
 }

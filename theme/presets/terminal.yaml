@@ -1,0 +1,39 @@
+# "terminal" theme for the missionctl suite: uses ONLY your terminal's own 16
+# ANSI colors (0-15), so every tool automatically follows whatever theme the
+# terminal runs (Catppuccin in kitty, Solarized in iTerm2, …) instead of the
+# suite's fixed 256-color palette.
+#
+# To use: put `preset: terminal` into ~/.config/missionctl/theme.yaml.
+# Requires a terminal theme where ANSI 8 ("bright black") is a readable
+# dim-gray and ANSI 0 is dark — true for all mainstream themes.
+
+blue:
+  light: "4"
+  dark: "12"
+green:
+  light: "2"
+  dark: "10"
+red:
+  light: "1"
+  dark: "9"
+amber:
+  light: "3"
+  dark: "11"
+muted:
+  light: "8"
+  dark: "7"
+subtle:
+  light: "8"
+  dark: "8"
+selected_bg:
+  light: "7"
+  dark: "8"
+selected_fg:
+  light: "0"
+  dark: "15"
+hover_bg:
+  light: "15"
+  dark: "0"
+on_accent:
+  light: "15"
+  dark: "0"
