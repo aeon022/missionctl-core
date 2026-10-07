@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"github.com/aeon022/missionctl-core/theme"
 	"regexp"
 	"strings"
 	"testing"
@@ -209,5 +210,38 @@ func TestSelectedRowKeepsInnerStylingAndBackground(t *testing.T) {
 	// the background SGR depends on the theme: 48;5;N (256 colors) or 4x / 10x (ANSI palette)
 	if j < 0 || !regexp.MustCompile(`^\x1b\[(48;|4\d|10\d)`).MatchString(rest[j+3:]) {
 		t.Errorf("selection background not re-applied after the pill: %q", rest)
+	}
+}
+
+func TestSelectedRowLiftsDimmedTextToMuted(t *testing.T) {
+	dim := lipgloss.NewStyle().Foreground(theme.SubtleV2).Render("2026-08-04")
+	row := Row(30, true, dim+" "+Money(-18.5, 10))
+	subtle, muted := fgParams(theme.SubtleV2), fgParams(theme.MutedV2)
+	if strings.Join(subtle, ";") == strings.Join(muted, ";") {
+		t.Skip("theme has identical subtle/muted colors")
+	}
+	if strings.Contains(row, "\x1b["+strings.Join(subtle, ";")+"m") {
+		t.Errorf("dimmed (Subtle) foreground must not survive on a selected row — it can equal the selection background:\n%q", row)
+	}
+	if !strings.Contains(row, "\x1b["+strings.Join(muted, ";")+"m") {
+		t.Errorf("expected the Muted foreground instead:\n%q", row)
+	}
+	// unselected rows keep the dim color
+	if !strings.Contains(Row(30, false, dim), "\x1b["+strings.Join(subtle, ";")+"m") {
+		t.Error("unselected rows must keep Subtle")
+	}
+	if plain(row) == "" || lipgloss.Width(row) != 30 {
+		t.Errorf("width %d", lipgloss.Width(row))
+	}
+}
+
+func TestSwapForegroundHandlesCombinedParams(t *testing.T) {
+	seq := "\x1b[1;38;5;244;4mx\x1b[m"
+	got := swapForeground(seq, lipgloss.Color("244"), lipgloss.Color("196"))
+	if got != "\x1b[1;38;5;196;4mx\x1b[m" {
+		t.Errorf("swap inside a combined SGR: %q", got)
+	}
+	if swapForeground("plain", lipgloss.Color("1"), lipgloss.Color("2")) != "plain" {
+		t.Error("plain text untouched")
 	}
 }

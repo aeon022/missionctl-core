@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"math"
 	"os"
+	"regexp"
 	"strings"
 	"time"
 
@@ -191,7 +192,47 @@ func Row(width int, selected bool, text string) string {
 		return "  " + text + pad
 	}
 	bar := lipgloss.NewStyle().Foreground(theme.BlueV2).Render("▌")
+	// Dimmed (Subtle) text is often the same color as the selection background
+	// (e.g. ANSI 8 in the terminal theme) and would vanish — lift it to Muted.
+	text = swapForeground(text, theme.SubtleV2, theme.MutedV2)
 	return bar + withBackground(" "+text+pad, theme.SelectedBgV2)
+}
+
+// fgParams returns the SGR parameters lipgloss emits for c as a foreground,
+// e.g. ["90"] or ["38","5","244"].
+func fgParams(c color.Color) []string {
+	probe := lipgloss.NewStyle().Foreground(c).Render("\x00")
+	i := strings.Index(probe, "\x00")
+	if i < 0 || !strings.HasPrefix(probe, "\x1b[") {
+		return nil
+	}
+	end := strings.Index(probe, "m")
+	if end < 2 || end > i {
+		return nil
+	}
+	return strings.Split(probe[2:end], ";")
+}
+
+var sgrRe = regexp.MustCompile("\x1b\\[([0-9;]*)m")
+
+// swapForeground rewrites every SGR sequence in text that sets the foreground
+// to from so that it sets to instead, wherever from appears among the
+// sequence's parameters (it may be combined with bold etc.).
+func swapForeground(text string, from, to color.Color) string {
+	f, t := fgParams(from), fgParams(to)
+	if len(f) == 0 || len(t) == 0 || strings.Join(f, ";") == strings.Join(t, ";") {
+		return text
+	}
+	return sgrRe.ReplaceAllStringFunc(text, func(seq string) string {
+		params := strings.Split(sgrRe.FindStringSubmatch(seq)[1], ";")
+		for i := 0; i+len(f) <= len(params); i++ {
+			if strings.Join(params[i:i+len(f)], ";") == strings.Join(f, ";") {
+				np := append(append(append([]string{}, params[:i]...), t...), params[i+len(f):]...)
+				return "\x1b[" + strings.Join(np, ";") + "m"
+			}
+		}
+		return seq
+	})
 }
 
 // withBackground paints bg behind text that may already contain styled
