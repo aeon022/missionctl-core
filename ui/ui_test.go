@@ -245,3 +245,18 @@ func TestSwapForegroundHandlesCombinedParams(t *testing.T) {
 		t.Error("plain text untouched")
 	}
 }
+
+func TestHoverRowKeepsInnerColorsAndHasNoAccentBar(t *testing.T) {
+	pill := Pill("overdue", Err)
+	row := HoverRow(40, "buy milk "+pill)
+	if lipgloss.Width(row) != 40 {
+		t.Errorf("width %d", lipgloss.Width(row))
+	}
+	if strings.Contains(plain(row), "▌") {
+		t.Error("hover has no accent bar (that marks the selection)")
+	}
+	styleSeq := pill[strings.Index(pill, "\x1b[m")+3 : strings.Index(pill, "overdue")]
+	if !strings.Contains(row, styleSeq+"overdue") {
+		t.Errorf("hover lost the pill's own colors: %q", row)
+	}
+}

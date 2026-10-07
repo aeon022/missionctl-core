@@ -108,10 +108,22 @@ func fitLine(pad string, lines []string, i, w int) string {
 	return l + strings.Repeat(" ", max(w-lipgloss.Width(l), 0))
 }
 
+// TabSpan is the horizontal extent of one drawn tab: the tab at Index covers
+// cells [X0, X1) of the line TabsLayout returns — what a click handler needs.
+type TabSpan struct{ Index, X0, X1 int }
+
 // Tabs renders a tab bar within width: the active tab as a filled pill, the
 // others dimmed, each optionally followed by a count. When there are too many
 // to fit, tabs far from the active one are replaced by "…".
 func Tabs(width int, labels []string, active int, counts []int) string {
+	line, _ := TabsLayout(width, labels, active, counts)
+	return line
+}
+
+// TabsLayout is Tabs plus the cell span of every visible tab (relative to the
+// start of the returned line), so mouse hit-testing uses exactly what was
+// drawn instead of re-deriving the geometry.
+func TabsLayout(width int, labels []string, active int, counts []int) (string, []TabSpan) {
 	render := func(i int) string {
 		l := labels[i]
 		if i < len(counts) && counts[i] > 0 {
@@ -123,23 +135,34 @@ func Tabs(width int, labels []string, active int, counts []int) string {
 		return lipgloss.NewStyle().Foreground(theme.MutedV2).Padding(0, 1).Render(l)
 	}
 	if len(labels) == 0 {
-		return ""
+		return "", nil
 	}
-	lo, hi := 0, len(labels)-1
-	build := func(lo, hi int) string {
-		var parts []string
+	ellipsis := lipgloss.NewStyle().Foreground(theme.SubtleV2).Render("…")
+	build := func(lo, hi int) (string, []TabSpan) {
+		var b strings.Builder
+		var spans []TabSpan
+		x := 0
+		put := func(s string) { b.WriteString(s); x += lipgloss.Width(s) }
 		if lo > 0 {
-			parts = append(parts, lipgloss.NewStyle().Foreground(theme.SubtleV2).Render("…"))
+			put(ellipsis)
+			put(" ")
 		}
 		for i := lo; i <= hi; i++ {
-			parts = append(parts, render(i))
+			if i > lo {
+				put(" ")
+			}
+			t := render(i)
+			spans = append(spans, TabSpan{Index: i, X0: x, X1: x + lipgloss.Width(t)})
+			put(t)
 		}
 		if hi < len(labels)-1 {
-			parts = append(parts, lipgloss.NewStyle().Foreground(theme.SubtleV2).Render("…"))
+			put(" ")
+			put(ellipsis)
 		}
-		return strings.Join(parts, " ")
+		return b.String(), spans
 	}
-	out := build(lo, hi)
+	lo, hi := 0, len(labels)-1
+	out, spans := build(lo, hi)
 	for width > 0 && lipgloss.Width(out) > width && (lo < active || hi > active) {
 		// drop the end farther from the active tab first
 		if hi-active >= active-lo && hi > active {
@@ -149,9 +172,9 @@ func Tabs(width int, labels []string, active int, counts []int) string {
 		} else {
 			hi--
 		}
-		out = build(lo, hi)
+		out, spans = build(lo, hi)
 	}
-	return out
+	return out, spans
 }
 
 // Duration formats a duration compactly: 45s, 12m, 2h, 1h 05m, 1d 3h.

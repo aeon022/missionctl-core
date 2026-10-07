@@ -124,3 +124,37 @@ func TestFrameAlwaysExactHeight(t *testing.T) {
 		t.Errorf("no header/footer: %q", got)
 	}
 }
+
+func TestTabsLayoutSpansMatchTheDrawnLine(t *testing.T) {
+	labels := []string{"All", "Baby", "Change-Management", "Linux", "Notes"}
+	line, spans := TabsLayout(0, labels, 2, []int{90, 5, 23, 1, 30})
+	plainLine := ansi.Strip(line)
+	if len(spans) != len(labels) {
+		t.Fatalf("spans = %d, want %d", len(spans), len(labels))
+	}
+	for _, sp := range spans {
+		cell := []rune(plainLine)[sp.X0:sp.X1]
+		want := " " + labels[sp.Index]
+		if !strings.HasPrefix(string(cell), want) {
+			t.Errorf("tab %d span [%d,%d) shows %q, want it to start with %q", sp.Index, sp.X0, sp.X1, string(cell), want)
+		}
+	}
+	for i := 1; i < len(spans); i++ {
+		if spans[i].X0 < spans[i-1].X1 {
+			t.Errorf("spans overlap: %+v %+v", spans[i-1], spans[i])
+		}
+	}
+	// windowed: spans only for visible tabs, offsets still exact
+	narrow, nsp := TabsLayout(30, labels, 3, nil)
+	if lipgloss.Width(narrow) > 30 || len(nsp) == 0 || len(nsp) >= len(labels) {
+		t.Fatalf("windowed layout: w=%d spans=%d", lipgloss.Width(narrow), len(nsp))
+	}
+	for _, sp := range nsp {
+		if got := string([]rune(ansi.Strip(narrow))[sp.X0:sp.X1]); !strings.Contains(got, labels[sp.Index]) {
+			t.Errorf("windowed tab %d span shows %q", sp.Index, got)
+		}
+	}
+	if Tabs(30, labels, 3, nil) != narrow {
+		t.Error("Tabs must equal TabsLayout's line")
+	}
+}

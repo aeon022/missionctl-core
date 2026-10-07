@@ -235,6 +235,16 @@ func swapForeground(text string, from, to color.Color) string {
 	})
 }
 
+// HoverRow is Row for the row under the mouse: no accent bar, a neutral
+// hover background, and — unlike painting a plain style over the text — the
+// row's own colors (dates, pills, amounts) are kept.
+func HoverRow(width int, text string) string {
+	text = ansi.Truncate(text, max(width-2, 0), "…")
+	pad := strings.Repeat(" ", max(width-2-lipgloss.Width(text), 0))
+	text = swapForeground(text, theme.SubtleV2, theme.MutedV2)
+	return "  " + withBackground(text+pad, theme.HoverBgV2)
+}
+
 // withBackground paints bg behind text that may already contain styled
 // segments (pills, colored amounts): every SGR reset inside text is followed
 // by the background again, so the selection bar stays unbroken while the
