@@ -58,6 +58,7 @@ var (
 )
 
 func init() {
+	captureDefaults()
 	loadOverrides()
 	buildStyles()
 }

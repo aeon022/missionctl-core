@@ -15,6 +15,13 @@ var (
 	hintStyle  = lipgloss.NewStyle().Foreground(theme.SubtleV2)
 )
 
+func init() {
+	theme.OnChange(func() {
+		titleStyle = lipgloss.NewStyle().Foreground(theme.MutedV2).Bold(true)
+		hintStyle = lipgloss.NewStyle().Foreground(theme.SubtleV2)
+	})
+}
+
 // Render centers icon, title and hint in a width×height area. Empty parts
 // are skipped; with width/height 0 it returns just the block, uncentered.
 func Render(width, height int, icon, title, hint string) string {

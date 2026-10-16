@@ -91,6 +91,10 @@ func loadOverrides() {
 	}
 	applyConfig(preset)
 	applyConfig(cfg)
+	current = name
+	if _, ok := presets[name]; !ok {
+		current = DefaultPreset
+	}
 }
 
 // DefaultPreset is applied when theme.yaml names no preset (or doesn't exist):

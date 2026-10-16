@@ -16,6 +16,13 @@ var (
 	descStyle = lipgloss.NewStyle().Foreground(theme.SubtleV2)
 )
 
+func init() {
+	theme.OnChange(func() {
+		keyStyle = lipgloss.NewStyle().Foreground(theme.AmberV2).Bold(true)
+		descStyle = lipgloss.NewStyle().Foreground(theme.SubtleV2)
+	})
+}
+
 // Hint renders one "key description" pair.
 func Hint(key, desc string) string { return keyStyle.Render(key) + " " + descStyle.Render(desc) }
 

@@ -46,9 +46,17 @@ func resolve(c lipgloss.AdaptiveColor, dark bool) color.Color {
 	return lipglossv2.Color(c.Light)
 }
 
-func init() {
-	dark := lipglossv2.HasDarkBackground(os.Stdin, os.Stdout)
+// darkBG is whether the terminal background is dark, detected once at startup.
+var darkBG bool
 
+func init() {
+	darkBG = lipglossv2.HasDarkBackground(os.Stdin, os.Stdout)
+	refreshV2()
+}
+
+// refreshV2 recomputes the v2 colors from the (possibly just changed) v1 palette.
+func refreshV2() {
+	dark := darkBG
 	BlueV2 = resolve(Blue, dark)
 	GreenV2 = resolve(Green, dark)
 	RedV2 = resolve(Red, dark)
