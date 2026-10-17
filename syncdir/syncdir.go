@@ -84,7 +84,7 @@ func Acquire(dbPath string) (*Lock, error) {
 	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
 		return nil, fmt.Errorf("syncdir: creating %s: %w", filepath.Dir(dbPath), err)
 	}
-	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o644)
+	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("syncdir: opening %s: %w", lockPath, err)
 	}

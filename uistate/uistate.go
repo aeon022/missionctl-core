@@ -19,7 +19,7 @@ func Save(path string, v any) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, data, 0644)
+	return os.WriteFile(path, data, 0o600)
 }
 
 // Load reads path and JSON-decodes it into v. Returns false (v left

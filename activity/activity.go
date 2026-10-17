@@ -126,10 +126,10 @@ func Log(tool, action, title string) {
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	if os.MkdirAll(Dir(), 0o755) != nil {
+	if os.MkdirAll(Dir(), 0o700) != nil {
 		return
 	}
-	f, err := os.OpenFile(Path(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	f, err := os.OpenFile(Path(), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o600)
 	if err != nil {
 		return
 	}

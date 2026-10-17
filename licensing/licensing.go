@@ -130,7 +130,7 @@ func Activate(orgID, key, label string) (Result, error) {
 		return Result{}, err
 	}
 
-	resp, err := http.Post("https://api.polar.sh/v1/customer-portal/license-keys/activate", "application/json", bytes.NewBuffer(body))
+	resp, err := polarHTTP.Post("https://api.polar.sh/v1/customer-portal/license-keys/activate", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return Result{Status: "offline_pending"}, err
 	}
@@ -187,7 +187,7 @@ func Validate(orgID, key string) (Result, error) {
 		return Result{}, err
 	}
 
-	resp, err := http.Post("https://api.polar.sh/v1/customer-portal/license-keys/validate", "application/json", bytes.NewBuffer(body))
+	resp, err := polarHTTP.Post("https://api.polar.sh/v1/customer-portal/license-keys/validate", "application/json", bytes.NewBuffer(body))
 	if err != nil {
 		return Result{}, err
 	}
@@ -210,3 +210,6 @@ func Validate(orgID, key string) (Result, error) {
 	}
 	return Result{Status: status, BenefitID: pr.BenefitID}, nil
 }
+
+// polarHTTP bounds every license call; http.DefaultClient has no timeout and could hang a CLI forever.
+var polarHTTP = &http.Client{Timeout: 15 * time.Second}

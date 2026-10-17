@@ -15,7 +15,7 @@ import (
 func DataDir(tool string) string {
 	home, _ := os.UserHomeDir()
 	dir := filepath.Join(home, ".local", "share", tool)
-	_ = os.MkdirAll(dir, 0o755)
+	_ = os.MkdirAll(dir, 0o700)
 	return dir
 }
 
@@ -34,6 +34,6 @@ func ResolveDir(tool, override string) (dir string, shared bool) {
 		home, _ := os.UserHomeDir()
 		override = filepath.Join(home, strings.TrimPrefix(override, "~"))
 	}
-	_ = os.MkdirAll(override, 0o755)
+	_ = os.MkdirAll(override, 0o700)
 	return override, true
 }
