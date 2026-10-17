@@ -11,7 +11,6 @@ package doctor
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -69,12 +68,8 @@ func CheckDataDir(label, dbPath string, shared bool) Check {
 	}
 	detail := fmt.Sprintf("%s (%s)", dbPath, mode)
 
-	if lock, err := syncdir.Acquire(dbPath); err != nil {
-		if errors.Is(err, syncdir.ErrLocked) {
-			detail += " — currently open in another process"
-		}
-	} else {
-		lock.Release()
+	if syncdir.InUse(dbPath) {
+		detail += " — currently open in another process"
 	}
 
 	return Check{Label: label, OK: true, Detail: detail}

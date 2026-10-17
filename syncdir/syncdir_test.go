@@ -16,29 +16,30 @@ func TestJournalMode(t *testing.T) {
 	}
 }
 
-func TestAcquireContention(t *testing.T) {
-	dir := t.TempDir()
-	dbPath := filepath.Join(dir, "test.db")
-
+// A long-lived TUI must not lock a daemon, CLI call or MCP server out: locks are shared.
+func TestAcquireIsSharedAndInUseSeesIt(t *testing.T) {
+	dbPath := filepath.Join(t.TempDir(), "test.db")
+	if InUse(dbPath) {
+		t.Fatal("nothing holds the database yet")
+	}
 	lock1, err := Acquire(dbPath)
 	if err != nil {
 		t.Fatalf("first Acquire: %v", err)
 	}
-
-	if _, err := Acquire(dbPath); !errors.Is(err, ErrLocked) {
-		t.Fatalf("second Acquire: got %v, want ErrLocked", err)
-	}
-
-	if err := lock1.Release(); err != nil {
-		t.Fatalf("Release: %v", err)
-	}
-
 	lock2, err := Acquire(dbPath)
 	if err != nil {
-		t.Fatalf("Acquire after Release: %v", err)
+		t.Fatalf("second Acquire must succeed (shared lock): %v", err)
 	}
-	if err := lock2.Release(); err != nil {
-		t.Fatalf("Release: %v", err)
+	if !InUse(dbPath) {
+		t.Fatal("InUse must report an open database")
+	}
+	lock1.Release()
+	if !InUse(dbPath) {
+		t.Fatal("still open while the second holder lives")
+	}
+	lock2.Release()
+	if InUse(dbPath) {
+		t.Fatal("released: no longer in use")
 	}
 }
 

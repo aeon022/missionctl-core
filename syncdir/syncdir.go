@@ -63,39 +63,49 @@ func JournalMode(shared bool) string {
 	return "WAL"
 }
 
-// ErrLocked is returned by Acquire when another process already holds the
-// lock on this database file.
+// ErrLocked is kept for API compatibility. Acquire no longer returns it: the lock is shared (see Acquire).
 var ErrLocked = errors.New("syncdir: database is already open in another process")
 
-// Lock is an advisory, same-machine-only exclusive lock on a database
-// file, meant to be held for the whole lifetime of the process that
-// acquired it.
+// Lock is an advisory, same-machine-only lock on a database file, meant to be held for the whole
+// lifetime of the process that acquired it.
 type Lock struct {
 	f *os.File
 }
 
-// Acquire non-blockingly takes an exclusive lock on "<dbPath>.lock",
-// creating that file if it doesn't exist yet. It returns ErrLocked
-// (wrapped) if another live process already holds it.
+// Acquire takes a SHARED advisory lock on "<dbPath>.lock", creating that file if needed. Shared on
+// purpose: a long-lived TUI must never lock the scheduler, a CLI call or an MCP server out of the same
+// database (that is what SQLite's own locking and busy timeout are for). The lock only records "this
+// database is open here" — see InUse, which `doctor` uses to report it.
 func Acquire(dbPath string) (*Lock, error) {
 	lockPath := dbPath + ".lock"
 	// First run on a fresh machine: the data directory may not exist yet, and
 	// this runs before the store would create it.
-	if err := os.MkdirAll(filepath.Dir(dbPath), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0o700); err != nil {
 		return nil, fmt.Errorf("syncdir: creating %s: %w", filepath.Dir(dbPath), err)
 	}
 	f, err := os.OpenFile(lockPath, os.O_CREATE|os.O_RDWR, 0o600)
 	if err != nil {
 		return nil, fmt.Errorf("syncdir: opening %s: %w", lockPath, err)
 	}
-	if err := unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB); err != nil {
+	if err := unix.Flock(int(f.Fd()), unix.LOCK_SH|unix.LOCK_NB); err != nil {
 		f.Close()
-		if err == unix.EWOULDBLOCK {
-			return nil, ErrLocked
-		}
 		return nil, fmt.Errorf("syncdir: locking %s: %w", lockPath, err)
 	}
 	return &Lock{f: f}, nil
+}
+
+// InUse reports whether some process currently holds the database open (holds an Acquire lock).
+func InUse(dbPath string) bool {
+	f, err := os.OpenFile(dbPath+".lock", os.O_RDWR, 0)
+	if err != nil {
+		return false
+	}
+	defer f.Close()
+	if err := unix.Flock(int(f.Fd()), unix.LOCK_EX|unix.LOCK_NB); err != nil {
+		return err == unix.EWOULDBLOCK
+	}
+	_ = unix.Flock(int(f.Fd()), unix.LOCK_UN)
+	return false
 }
 
 // Release releases the lock and closes its file descriptor. It's safe to
