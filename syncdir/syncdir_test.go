@@ -1,7 +1,6 @@
 package syncdir
 
 import (
-	"errors"
 	"os"
 	"path/filepath"
 	"testing"
