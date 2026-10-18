@@ -82,3 +82,23 @@ func contains(l []string, s string) bool {
 	}
 	return false
 }
+
+func TestCycleAdvancesWrapsAndSaves(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	orig := Current()
+	t.Cleanup(func() { _ = Apply(orig) })
+
+	names := Presets()
+	last := names[len(names)-1]
+	if err := Apply(last); err != nil {
+		t.Fatal(err)
+	}
+	next, err := Cycle()
+	if err != nil || next != names[0] || Current() != names[0] {
+		t.Fatalf("Cycle from the last preset must wrap to %q, got %q (%v)", names[0], next, err)
+	}
+	if b, _ := os.ReadFile(filepath.Join(home, ".config", "missionctl", "theme.yaml")); !strings.Contains(string(b), "preset: "+names[0]) {
+		t.Errorf("Cycle must save the choice: %q", b)
+	}
+}

@@ -97,3 +97,21 @@ func Save(name string) error {
 	}
 	return os.WriteFile(path, []byte(out), 0o600)
 }
+
+// Cycle switches to the next preset (sorted order, wrapping), applies it live and saves it for
+// the whole suite. It returns the new name; a failed Save is not fatal for the running session.
+func Cycle() (string, error) {
+	names := Presets()
+	next := names[0]
+	for i, n := range names {
+		if n == current {
+			next = names[(i+1)%len(names)]
+			break
+		}
+	}
+	if err := Apply(next); err != nil {
+		return "", err
+	}
+	_ = Save(next)
+	return next, nil
+}
